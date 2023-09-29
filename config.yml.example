@@ -1,0 +1,25 @@
+time:
+  end: "23:59:59"
+  start: "00:00:00"
+  polling_interval: 60
+scraper:
+  sustained_errors: 5
+  password: "Enter123!"
+  retry: 2
+  url: "http://test.example.com"
+  username: "admin"
+influxdb:
+  version: 1
+  insecure_skip_verify: false
+  retry: 2
+  tags:
+    host: "my-host"
+  url: "http://localhost:8086"
+  v1:
+    database: "v1-db"
+    username: "v1-user"
+    password: "v1-password"
+  v2:
+    org: "my-org"
+    bucket: "my-bucket"
+    Auth_token: "my-super-secret-auth-token"
