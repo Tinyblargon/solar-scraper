@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"log"
 	"os"
 )
@@ -12,6 +13,8 @@ func New(file string, debug bool) *Loggers {
 	}
 	if debug {
 		loggers.Debug = newLogger("DEBUG", fileHandle, os.Stdout)
+	} else {
+		loggers.Debug = log.New(io.Discard, "", 0)
 	}
 	return &loggers
 }
