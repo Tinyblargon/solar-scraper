@@ -24,6 +24,7 @@ func debugMetrics(metrics SolarMetrics, reportTime time.Time, debug *log.Logger)
 }
 
 type MetricsWriter interface {
+	Ping() error
 	Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) error
 }
 
@@ -61,6 +62,7 @@ type Settings struct {
 	InsecureSkipVerify bool       `mapstructure:"insecure_skip_verify"`
 	Retry              uint       `mapstructure:"retry"`
 	Tags               Tags       `mapstructure:"tags"`
+	Timeout            uint       `mapstructure:"timeout"`
 	Url                string     `mapstructure:"url"`
 	V1                 SettingsV1 `mapstructure:"v1"`
 	V2                 SettingsV2 `mapstructure:"v2"`
@@ -72,12 +74,14 @@ func (s Settings) CreateWriter() MetricsWriter {
 		s.V1.url = s.Url
 		s.V1.insecureSkipVerify = s.InsecureSkipVerify
 		s.V1.tags = s.Tags
+		s.V1.timeout = time.Duration(s.Timeout * uint(time.Second))
 		s.V1.retry = s.Retry
 		return &s.V1
 	case v2:
 		s.V2.url = s.Url
 		s.V2.insecureSkipVerify = s.InsecureSkipVerify
 		s.V2.tags = s.Tags
+		s.V2.timeout = time.Duration(s.Timeout * uint(time.Second))
 		s.V2.retry = s.Retry
 		return &s.V2
 	}
@@ -87,6 +91,7 @@ func (s Settings) CreateWriter() MetricsWriter {
 func (s Settings) Defaults(setting string) {
 	viper.SetDefault(setting+".retry", 2)
 	viper.SetDefault(setting+".insecure_skip_verify", false)
+	viper.SetDefault(setting+".timeout", 5)
 	// Ignore the error, at worst the default will be empty
 	hostname, _ := os.Hostname()
 	viper.SetDefault(setting+".tags.host", hostname)
@@ -124,7 +129,28 @@ type SettingsV1 struct {
 	url                string
 	insecureSkipVerify bool
 	tags               Tags
+	timeout            time.Duration
 	retry              uint
+}
+
+func (s SettingsV1) newClient() (influxdb1.Client, error) {
+	return influxdb1.NewHTTPClient(influxdb1.HTTPConfig{
+		Addr:               s.url,
+		Username:           s.Username,
+		Password:           s.Password,
+		InsecureSkipVerify: s.insecureSkipVerify,
+		Timeout:            time.Duration(s.timeout) * time.Second,
+	})
+}
+
+func (s SettingsV1) Ping() error {
+	client, err := s.newClient()
+	if err != nil {
+		return errors.New("Error creating InfluxDB Client: " + err.Error())
+	}
+	defer client.Close()
+	_, _, err = client.Ping(time.Duration(s.timeout) * time.Second)
+	return err
 }
 
 func (s SettingsV1) validate() error {
@@ -138,16 +164,8 @@ func (s SettingsV1) validate() error {
 }
 
 func (s SettingsV1) Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) error {
-	if debug != nil {
-		debugMetrics(metrics, reportTime, debug)
-	}
-
-	client, err := influxdb1.NewHTTPClient(influxdb1.HTTPConfig{
-		Addr:               s.url,
-		Username:           s.Username,
-		Password:           s.Password,
-		InsecureSkipVerify: s.insecureSkipVerify,
-	})
+	debugMetrics(metrics, reportTime, debug)
+	client, err := s.newClient()
 	if err != nil {
 		return errors.New("Error creating InfluxDB Client: " + err.Error())
 	}
@@ -190,7 +208,17 @@ type SettingsV2 struct {
 	url                string
 	insecureSkipVerify bool
 	tags               Tags
+	timeout            time.Duration
 	retry              uint
+}
+
+func (s SettingsV2) Ping() error {
+	client := influxdb2.NewClient(s.url, s.AuthToken)
+	defer client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+	_, err := client.Ping(ctx)
+	cancel()
+	return err
 }
 
 func (s SettingsV2) validate() error {
@@ -204,9 +232,7 @@ func (s SettingsV2) validate() error {
 }
 
 func (s SettingsV2) Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) (err error) {
-	if debug != nil {
-		debugMetrics(metrics, reportTime, debug)
-	}
+	debugMetrics(metrics, reportTime, debug)
 	client := influxdb2.NewClient(s.url, s.AuthToken)
 	defer client.Close()
 	client.Options().SetTLSConfig(&tls.Config{InsecureSkipVerify: s.insecureSkipVerify})
@@ -220,7 +246,9 @@ func (s SettingsV2) Write(metrics SolarMetrics, reportTime time.Time, debug *log
 		p.AddField(now, metrics.Now)
 	}
 	for i := -1; i < int(s.retry); i++ {
-		err = writeAPI.WritePoint(context.Background(), p)
+		ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
+		err = writeAPI.WritePoint(ctx, p)
+		cancel()
 		if err == nil {
 			break
 		}

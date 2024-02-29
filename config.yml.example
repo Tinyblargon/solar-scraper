@@ -12,6 +12,7 @@ influxdb:
   version: 1
   insecure_skip_verify: false
   retry: 2
+  timeout: 5
   tags:
     host: "my-host"
   url: "http://localhost:8086"

@@ -14,5 +14,9 @@ func main() {
 	if err != nil {
 		log.Error.Fatal(err)
 	}
-	scheduler.Run(config.Time, config.Scraper, config.InfluxDB.CreateWriter(), log.Debug, log.Error)
+	metricsWriter := config.InfluxDB.CreateWriter()
+	if err = metricsWriter.Ping(); err != nil {
+		log.Error.Fatal(err)
+	}
+	scheduler.Run(config.Time, config.Scraper, metricsWriter, log.Debug, log.Error)
 }
