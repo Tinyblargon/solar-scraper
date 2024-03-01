@@ -10,13 +10,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Settings is the configuration for the application
 type Settings struct {
 	Time     timer.Settings   `mapstructure:"time"`
 	Scraper  scraper.Settings `mapstructure:"scraper"`
 	InfluxDB influx.Settings  `mapstructure:"influxdb"`
 }
 
-func (s *Settings) Validate() error {
+func (s *Settings) validate() error {
 	if err := s.Time.Validate(); err != nil {
 		return err
 	}
@@ -26,7 +27,7 @@ func (s *Settings) Validate() error {
 	return s.InfluxDB.Validate()
 }
 
-func (s Settings) Defaults() {
+func (s Settings) defaults() {
 	s.Time.Defaults("time")
 	s.Scraper.Defaults("scraper")
 	s.InfluxDB.Defaults("influxdb")
@@ -50,11 +51,11 @@ func Get(configPath string) (Settings, error) {
 		return configuration, fmt.Errorf("error reading config file, %s", err)
 	}
 
-	configuration.Defaults()
+	configuration.defaults()
 	if err := viper.Unmarshal(&configuration); err != nil {
 		return configuration, fmt.Errorf("unable to decode into struct, %v", err)
 	}
-	if err := configuration.Validate(); err != nil {
+	if err := configuration.validate(); err != nil {
 		return configuration, fmt.Errorf("unable to validate config, %v", err)
 	}
 	return configuration, nil

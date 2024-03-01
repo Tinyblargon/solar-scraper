@@ -23,11 +23,13 @@ func debugMetrics(metrics SolarMetrics, reportTime time.Time, debug *log.Logger)
 	}
 }
 
+// MetricsWriter is the interface for writing metrics to InfluxDB
 type MetricsWriter interface {
-	Ping() error
-	Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) error
+	Ping() error                                                               // Ping checks if the InfluxDB is reachable
+	Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) error // Write writes the metrics to InfluxDB
 }
 
+// SolarMetrics is the metrics to be written to InfluxDB
 type SolarMetrics struct {
 	Now    uint
 	NowNil bool
@@ -57,6 +59,7 @@ const (
 	v2 uint8 = 2
 )
 
+// Settings is the configuration for the InfluxDB
 type Settings struct {
 	Version            uint8      `mapstructure:"version"`
 	InsecureSkipVerify bool       `mapstructure:"insecure_skip_verify"`
@@ -68,6 +71,7 @@ type Settings struct {
 	V2                 SettingsV2 `mapstructure:"v2"`
 }
 
+// CreateWriter creates a MetricsWriter based on the settings
 func (s Settings) CreateWriter() MetricsWriter {
 	switch s.Version {
 	case v1:
@@ -88,6 +92,7 @@ func (s Settings) CreateWriter() MetricsWriter {
 	return nil
 }
 
+// Defaults sets the default values for the settings
 func (s Settings) Defaults(setting string) {
 	viper.SetDefault(setting+".retry", 2)
 	viper.SetDefault(setting+".insecure_skip_verify", false)
@@ -98,6 +103,7 @@ func (s Settings) Defaults(setting string) {
 
 }
 
+// Validate checks if the settings are valid
 func (s Settings) Validate() error {
 	if s.Version != 1 && s.Version != 2 {
 		return errors.New(ErrorInvalidVersion)
@@ -118,10 +124,12 @@ func (s Settings) Validate() error {
 	return nil
 }
 
+// Tags for InfluxDB
 type Tags struct {
 	Host string `yml:"host"`
 }
 
+// SettingsV1 is the configuration for the InfluxDB v1
 type SettingsV1 struct {
 	Database           string `mapstructure:"database"`
 	Password           string `mapstructure:"password"`
@@ -143,6 +151,7 @@ func (s SettingsV1) newClient() (influxdb1.Client, error) {
 	})
 }
 
+// Ping checks if the InfluxDB is reachable
 func (s SettingsV1) Ping() error {
 	client, err := s.newClient()
 	if err != nil {
@@ -163,6 +172,7 @@ func (s SettingsV1) validate() error {
 	return nil
 }
 
+// Write writes the metrics to InfluxDB
 func (s SettingsV1) Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) error {
 	debugMetrics(metrics, reportTime, debug)
 	client, err := s.newClient()
@@ -201,6 +211,7 @@ func (s SettingsV1) Write(metrics SolarMetrics, reportTime time.Time, debug *log
 	return client.Close()
 }
 
+// SettingsV2 is the configuration for the InfluxDB v2
 type SettingsV2 struct {
 	Organization       string `mapstructure:"org"`
 	Bucket             string `mapstructure:"bucket"`
@@ -212,6 +223,7 @@ type SettingsV2 struct {
 	retry              uint
 }
 
+// Ping checks if the InfluxDB is reachable
 func (s SettingsV2) Ping() error {
 	client := influxdb2.NewClient(s.url, s.AuthToken)
 	defer client.Close()
@@ -231,6 +243,7 @@ func (s SettingsV2) validate() error {
 	return nil
 }
 
+// Write writes the metrics to InfluxDB
 func (s SettingsV2) Write(metrics SolarMetrics, reportTime time.Time, debug *log.Logger) (err error) {
 	debugMetrics(metrics, reportTime, debug)
 	client := influxdb2.NewClient(s.url, s.AuthToken)

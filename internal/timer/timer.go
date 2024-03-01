@@ -14,6 +14,7 @@ const (
 	ErrorPollingInterval   string = "polling interval must be greater than 0"
 )
 
+// Settings is the configuration for the timer
 type Settings struct {
 	end                      timeObject `mapstructure:"-"`
 	End                      string     `mapstructure:"end"`
@@ -22,20 +23,24 @@ type Settings struct {
 	PollingIntervalInSeconds uint       `mapstructure:"polling_interval"`
 }
 
+// Defaults sets the default values for the settings
 func (s Settings) Defaults(setting string) {
 	viper.SetDefault(setting+".end", "23:59:59")
 	viper.SetDefault(setting+".start", "00:00:00")
 	viper.SetDefault(setting+".polling_interval", uint(60))
 }
 
+// GetEndTime returns the end time
 func (s Settings) GetEndTime() timeObject {
 	return s.end
 }
 
+// GetStartTime returns the start time
 func (s Settings) GetStartTime() timeObject {
 	return s.start
 }
 
+// Validate checks if the settings are valid
 func (s *Settings) Validate() (err error) {
 	if s.PollingIntervalInSeconds == 0 {
 		return errors.New(ErrorPollingInterval)

@@ -21,6 +21,7 @@ const (
 	ErrorEmptyUrl string = "empty url"
 )
 
+// EncodeCredentials encodes the username and password to base64
 func EncodeCredentials(username, password string) credentials {
 	return credentials(base64.StdEncoding.EncodeToString([]byte(username + ":" + password)))
 }
@@ -43,7 +44,8 @@ func errorSearchKeyNotFound(search string) error {
 	return errors.New("string (" + search + ") not found")
 }
 
-func GetStatus(url string, encoded credentials, retry uint) (stats influx.SolarMetrics, reportingTime time.Time, err error) {
+// GetStatus gets the metrics data from the url
+func GetMetrics(url string, encoded credentials, retry uint) (stats influx.SolarMetrics, reportingTime time.Time, err error) {
 	for i := -1; i < int(retry); i++ {
 		stats, reportingTime, err = retryStatus(url, encoded)
 		if err == nil {
@@ -87,6 +89,7 @@ func getValue(body []byte, search string) (float64, error) {
 
 type credentials string
 
+// Settings contains the settings for the scraper
 type Settings struct {
 	MaxSustainedErrors uint   `mapstructure:"sustained_errors"` // The amount of consecutive errors that are applicable for a status substitution. If this value is exceeded nothing wil be written to the database, until valid data is received.
 	Password           string `mapstructure:"password"`
@@ -95,11 +98,13 @@ type Settings struct {
 	Username           string `mapstructure:"username"`
 }
 
+// Defaults sets the default values for the settings
 func (s Settings) Defaults(setting string) {
 	viper.SetDefault(setting+".sustained_errors", uint(5))
 	viper.SetDefault(setting+".retry", uint(2))
 }
 
+// Validate checks if the settings are valid
 func (s Settings) Validate() error {
 	if s.URL == "" {
 		return errors.New(ErrorEmptyUrl)

@@ -11,6 +11,7 @@ import (
 	"github.com/procyon-projects/chrono"
 )
 
+// Run starts the scheduler
 func Run(timeS timer.Settings, scraperS scraper.Settings, metricsWriter influx.MetricsWriter, debugLog, errorLog *log.Logger) {
 	end := timeS.GetEndTime()
 	start := timeS.GetStartTime()
@@ -35,7 +36,7 @@ func Run(timeS timer.Settings, scraperS scraper.Settings, metricsWriter influx.M
 		var err error
 		var reportingTime time.Time
 		task, _ := chrono.NewDefaultTaskScheduler().ScheduleAtFixedRate(func(ctx context.Context) {
-			runStatus.Current, reportingTime, err = scraper.GetStatus(scraperS.URL, credentials, scraperS.Retry)
+			runStatus.Current, reportingTime, err = scraper.GetMetrics(scraperS.URL, credentials, scraperS.Retry)
 			if err != nil {
 				errorLog.Println(err)
 			}
@@ -58,6 +59,7 @@ type status struct {
 	ErrorCount uint
 }
 
+// SubstituteCurrentStatus substitutes the current status with the last status if an error occurs
 func (stat *status) SubstituteCurrentStatus(err error, maxSustainedErrors uint) bool {
 	if err != nil {
 		if stat.ErrorCount <= maxSustainedErrors {

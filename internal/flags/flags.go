@@ -43,6 +43,7 @@ func println(shortFlag, longFlag, Description string) {
 	fmt.Println("-" + shortFlag + ", --" + longFlag + "\t\t" + Description)
 }
 
+// Parse parses the command line arguments and returns the options
 func Parse() Options {
 	flag.Usage = usage
 	flag.Parse()
@@ -57,6 +58,7 @@ func Parse() Options {
 	}
 }
 
+// Options is the command line options
 type Options struct {
 	Config string
 	Debug  bool

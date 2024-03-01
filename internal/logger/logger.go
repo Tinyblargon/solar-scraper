@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// New creates new loggers
 func New(file string, debug bool) *Loggers {
 	fileHandle := getFileHandle(file)
 	loggers := Loggers{
@@ -37,6 +38,7 @@ func newLogger(prefix string, file *os.File, alternative *os.File) *log.Logger {
 	return log.New(alternative, prefix+": ", log.Ldate|log.Ltime)
 }
 
+// Loggers contains all the loggers
 type Loggers struct {
 	Debug *log.Logger
 	Error *log.Logger
