@@ -39,6 +39,10 @@ func extractStatusValues(body []byte) (stats influx.SolarMetrics, err error) {
 	return
 }
 
+func errorSearchKeyNotFound(search string) error {
+	return errors.New("string (" + search + ") not found")
+}
+
 func GetStatus(url string, encoded credentials, retry uint) (stats influx.SolarMetrics, reportingTime time.Time, err error) {
 	for i := -1; i < int(retry); i++ {
 		stats, reportingTime, err = retryStatus(url, encoded)
@@ -69,7 +73,7 @@ func retryStatus(url string, encoded credentials) (stats influx.SolarMetrics, re
 func getValue(body []byte, search string) (float64, error) {
 	split := bytes.SplitAfter(body, []byte(search))
 	if len(split) < 2 {
-		return 0, errors.New("string (" + search + ") not found")
+		return 0, errorSearchKeyNotFound(search)
 	}
 	numberAsByte := []byte{}
 	for i, e := range split[1] {
