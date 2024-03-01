@@ -84,9 +84,7 @@ func getValue(body []byte, search string) (float64, error) {
 type credentials string
 
 type Settings struct {
-	// The amount of consecutive errors that are applicable for a status substitution.
-	// If this value is exceeded nothing wil be written to the database. until valid data is received.
-	MaxSustainedErrors uint   `mapstructure:"sustained_errors"`
+	MaxSustainedErrors uint   `mapstructure:"sustained_errors"` // The amount of consecutive errors that are applicable for a status substitution. If this value is exceeded nothing wil be written to the database, until valid data is received.
 	Password           string `mapstructure:"password"`
 	Retry              uint   `mapstructure:"retry"`
 	URL                string `mapstructure:"url"`

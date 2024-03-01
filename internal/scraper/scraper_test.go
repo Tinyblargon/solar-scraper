@@ -41,7 +41,9 @@ func Test_Validate(t *testing.T) {
 		input  Settings
 		output error
 	}{
-		// TODO add valid case
+		{name: "Valid",
+			input: Settings{URL: "http://localhost:8086"},
+		},
 		{name: "ErrorEmptyUrl",
 			input:  Settings{},
 			output: errors.New(ErrorEmptyUrl),
