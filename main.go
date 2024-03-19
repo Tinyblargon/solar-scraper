@@ -7,8 +7,10 @@ import (
 	"solar-scraper/internal/scheduler"
 )
 
+var version string // Set by build script
+
 func main() {
-	options := flags.Parse()
+	options := flags.Parse(version)
 	log := logger.New(options.Log, options.Debug)
 	config, err := config.Get(options.Config)
 	if err != nil {
